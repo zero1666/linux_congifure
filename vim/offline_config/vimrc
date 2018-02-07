@@ -84,6 +84,8 @@ if v:version >700
     "highlight current line and column
     set cursorline
     set cursorcolumn
+    highlight CursorLine   cterm=NONE ctermbg=black ctermfg=green guibg=NONE guifg=NONE
+    highlight CursorColumn cterm=NONE ctermbg=black ctermfg=green guibg=NONE guifg=NONE
 endif
 
 "code fold
@@ -189,16 +191,16 @@ execute pathogen#infect()
 
 """""" ctags""""""
 " 配置项目的tags文件路径
-map <F4> :!/usr/local/ctags5.8/bin/ctags -R --c++-kinds=+p+l+x+c+d+e+f+g+m+n+s+t+u+v --fields=+liaS --extra=+q --language-force=c++ .<CR>
-set tags+=tags,/data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk/tags
+map <F4> :!ctags -R --c++-kinds=+p+l+x+c+d+e+f+g+m+n+s+t+u+v --fields=+liaS --extra=+q --language-force=c++ .<CR>
+set tags+=./tags;,tags,/data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk/tags
 
 """"""tagbar""""""
-" 设置 tagbar 子窗口的位置出现在主编辑区的左边
-"let tagbar_left=1
+" 设置 tagbar 子窗口的位置出现在主编辑区的左边(default:right)
+let tagbar_left=1
 " 设置显示／隐藏标签列表子窗口的快捷键。速记：tag list
 nnoremap <Leader>tl :TagbarToggle<CR>
 " 设置ctag命令的路径
-let g:tagbar_ctags_bin = '/usr/local/ctags5.8/bin/ctags'
+let g:tagbar_ctags_bin = 'ctags'
 " 设置标签子窗口的宽度
 let tagbar_width=32
 " tagbar 子窗口中不显示冗余帮助信息
@@ -217,8 +219,7 @@ let g:tagbar_type_cpp = {
         \ 'f:functions',
         \ 'm:members:0:0',
         \ 'v:global:0:0',
-        \ 'x:external:0:0',
-        \ 'l:local:0:0'
+        \ 'x:external:0:0'
      \ ],
      \ 'sro'        : '::',
      \ 'kind2scope' : {
@@ -271,12 +272,15 @@ let g:ctrlp_line_prefix = '♪ '
 map <F3> :!cscope -Rbq<CR>
 
 set cscopequickfix=s-,c-,d-,i-,t-,e-
-cs add /data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk/cscope.out /data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk
+set nocscopeverbose
+cs add /data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk/cscope.out /data/home/davidwwang/workspace/tencent_proj/dailymusic_proj/trunk/
 
 """""" nerdtree""""""
 " 设置NERDTree快捷键
  map <leader>nt :NERDTreeToggle<CR>
 "map <C-n> :NERDTreeToggle<CR>
+"设置nerdtree在屏幕的右边显示(默认left)
+let NERDTreeWinPos = "right"
 
 " 显示行号
 let NERDTreeShowLineNumbers=1
