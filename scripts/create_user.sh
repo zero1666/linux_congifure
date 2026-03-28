@@ -214,7 +214,21 @@ if [[ -n "$EXPIRE_DAYS" ]]; then
     log_info "密码有效期设置为 $EXPIRE_DAYS 天"
 fi
 
-# 6. 验证用户创建结果
+# 6. 添加 SSH 登录白名单 (绕过 TJJ 实名认证)
+if [[ -f /etc/sshd_special_user ]]; then
+    if ! grep -q "^${USERNAME}$" /etc/sshd_special_user; then
+        echo "$USERNAME" >> /etc/sshd_special_user
+        log_info "已将 '$USERNAME' 加入 /etc/sshd_special_user (跳过 pam_tjj 实名检查)"
+    fi
+fi
+if [[ -f /etc/script_user ]]; then
+    if ! grep -q "^${USERNAME}$" /etc/script_user; then
+        echo "$USERNAME" >> /etc/script_user
+        log_info "已将 '$USERNAME' 加入 /etc/script_user (允许 pam_tsso 本地密码认证)"
+    fi
+fi
+
+# 7. 验证用户创建结果
 echo ""
 log_info "====== 用户创建成功 ======"
 echo "  用户信息:"
@@ -223,7 +237,7 @@ echo "  家目录:"
 ls -ld "$HOME_DIR"
 echo ""
 
-# 7. 显示可用的后续操作提示
+# 8. 显示可用的后续操作提示
 cat <<EOF
 后续操作提示:
   切换到新用户:          su - $USERNAME
