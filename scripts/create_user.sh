@@ -32,7 +32,7 @@ usage() {
   -u, --username <用户名>      新用户的用户名 (必填)
   -s, --shell <shell路径>      指定默认 shell (默认: /bin/bash)
   -g, --group <附加组>         附加用户组，逗号分隔 (可选)
-  -d, --home <家目录>          指定家目录路径 (默认: /home/<用户名>)
+  -d, --home <家目录>          指定家目录路径 (默认: /data/home/<用户名>)
   -S, --sudo                   授予 sudo 权限 (加入 wheel 组)
   -n, --no-interactive         非交互模式 (需配合 -p 使用)
   -p, --password <密码>        设置密码 (仅非交互模式)
@@ -109,7 +109,7 @@ if [[ "$INTERACTIVE" == true ]]; then
     [[ -n "$input_shell" ]] && SHELL_PATH="$input_shell"
 
     # 家目录
-    default_home="/home/$USERNAME"
+    default_home="/data/home/$USERNAME"
     read -rp "家目录 [$default_home]: " input_home
     HOME_DIR="${input_home:-$default_home}"
 
@@ -131,7 +131,7 @@ if [[ "$INTERACTIVE" == true ]]; then
 fi
 
 # 设置默认家目录
-[[ -z "$HOME_DIR" ]] && HOME_DIR="/home/$USERNAME"
+[[ -z "$HOME_DIR" ]] && HOME_DIR="/data/home/$USERNAME"
 
 # 校验 Shell 是否存在
 if [[ ! -x "$SHELL_PATH" ]]; then
