@@ -1,3 +1,6 @@
+" File: .vimrc
+"
+" Gotta be first
 """""""""""""""""""""""""""""""""""""
 "==> General
 """"""""""""""""""""""""""""""""""""
@@ -7,17 +10,10 @@ set history=700
 " turn off VI compatible mode
 set nocompatible
 
-" 开启文件类型侦测(Enable filetype detection)
-" filetype on
-"根据侦测到的文件类型加载对应的插件(Enable loading the plugin files for specific file types)
-filetype plugin on
-"Apply indent for specific file types
-filetype indent on
 
 " set to auto read when a file is changed from the outside
 set autoread
 
-set wrap
 "" 退格键设置
 " indent: 如果用了:set indent,:set ai 等自动缩进，想用退格键将字段缩进的删掉，必须设置这个选项。否则不响应。
 " eol:如果插入模式下在行开头，想通过退格键合并两行，需要设置eol。
@@ -34,7 +30,10 @@ let mapleader = ";"
 nmap <leader>w :w!<cr>
 
 "Let the vimrc config take effect right away when saving
-autocmd BufWritePost $MYVIMRC source $MYVIMRC
+augroup auto_reload_vimrc
+  autocmd!
+  autocmd BufWritePost $MYVIMRC source $MYVIMRC
+augroup END
 
 """"""""""""""""""""""""""""""""""""""""""""
 "==> vim user interface
@@ -63,6 +62,7 @@ set smartcase
 "show matched bracket etc.
 set showmatch
 
+set showcmd
 if has('gui_running')
     "disable cursor blink
     set guicursor=a:block-blinkon0
@@ -76,8 +76,6 @@ if has('gui_running')
     set guioptions-=T 
 endif
 
-"always show status bar
-set laststatus=2
 
 if v:version >700 
     "highlight current line and column
@@ -94,16 +92,12 @@ set nofoldenable
 """"""""""""""""""""""""""""""""""""""""""""
 " enable syntax highlighting
 syntax enable
-syntax on
 
-"colorscheme desert
-set background=dark
 
-" set utf8 as standard encoding and en_US as the standard lanuage
-"设置编码
+" Encoding settings (utf-8)
+set encoding=utf-8
 set fileencodings=ucs-bom,utf-8,cp936,gb18030,big5,euc-jp,euc-kr,latin1
 set termencoding=utf-8
-set encoding=utf-8
 
 if has('gui_running')
     set guifont=YaHei\ Consolas\ Hybrid\ 12
@@ -135,18 +129,23 @@ set nowrap
 """"""""""""""""""
 
 
-set t_Co=256
-"colo molokai
+if !has('gui_running')
+    set t_Co=256
+endif
 " hilight function name
-autocmd BufNewFile,BufRead * :syntax match cfunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>[^()]*)("me=e-2 
-autocmd BufNewFile,BufRead * :syntax match cfunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>\s*("me=e-1
+augroup hilight_functions
+  autocmd!
+  autocmd BufNewFile,BufRead * :syntax match cfunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>[^()]*)("me=e-2
+  autocmd BufNewFile,BufRead * :syntax match cfunctions "\<[a-zA-Z_][a-zA-Z_0-9]*\>\s*("me=e-1
+  autocmd ColorScheme * hi cfunctions ctermfg=81
+augroup END
 hi cfunctions ctermfg=81
 
 
 " C/C++ 设置相关
 set cindent
-set mouse=a
-
+"远程登陆时关闭,否则不支持鼠标复制粘贴
+"set mouse=a
 
 " 插入模式下 Ctrl + E == ESC
 "imap <C-e> <Esc>
@@ -157,20 +156,17 @@ set report=1
 
 
 "if filereadable("cscope.out")
-nmap <leader>f :e cscope.files<CR> 
-nmap <leader>s :scs find s <C-R>=expand("<cword>")<CR><CR>
-nmap <leader>g :scs find g <C-R>=expand("<cword>")<CR><CR>
-nmap <leader>c :scs find c <C-R>=expand("<cword>")<CR><CR>
-nmap <leader>t :scs find t <C-R>=expand("<cword>")<CR><CR>
-nmap <leader>e :scs find e <C-R>=expand("<cword>")<CR><CR>
-"nmap <leader>f :cs find f <C-R>=expand("<cfile>")<CR><CR>
-nmap <leader>i :scs find i <C-R>=expand("<cfile>")<CR><CR>
-nmap <leader>d :scs find d <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>csf :e cscope.files<CR>
+nmap <leader>css :scs find s <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>csg :scs find g <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>csc :scs find c <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>cst :scs find t <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>cse :scs find e <C-R>=expand("<cword>")<CR><CR>
+nmap <leader>csi :scs find i <C-R>=expand("<cfile>")<CR><CR>
+nmap <leader>csd :scs find d <C-R>=expand("<cword>")<CR><CR>
 
 nmap <leader>co :copen<CR>
 nmap <leader>cc :cclose<CR>
-
-"endif
 
 
 function! GetBufferList()
@@ -180,15 +176,28 @@ function! GetBufferList()
     return buflist
 endfunction
 
-nmap <silent> <leader>c :call ToggleList("Quickfix List", 'bo c')<CR>
+function! ToggleList(bufname, pfx)
+    let buflist = GetBufferList()
+    for bufnum in map(filter(split(buflist, '\n'), 'v:val =~ "'.a:bufname.'"'), 'str2nr(matchstr(v:val, '\d\+'))')
+        if bufwinnr(bufnum) != -1
+            exec(a:pfx.'close')
+            return
+        endif
+    endfor
+    if a:pfx ==# 'bo c'
+        exec(a:pfx.'open')
+    else
+        exec(a:pfx.'open')
+    endif
+endfunction
+
+nmap <silent> <leader>q :call ToggleList("Quickfix List", 'bo c')<CR>
+nmap <silent> <leader>l :call ToggleList("Location List", 'l')<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""
 "插件设置 
 """"""""""""""""""""""""""""""""""""""""""""""""
 """"""Vundle 配置"""""""""""""
-set nocompatible              " be iMproved, required
-filetype off                  " required
-
 " set the runtime path to include Vundle and initialize
 set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
@@ -201,14 +210,40 @@ Plugin 'VundleVim/Vundle.vim'
 """""""""" 自己的配置的插件放在这个位置下面
 " 主题插件
 Plugin 'Solarized'
-Plugin 'molokai'
-Plugin 'phd'
+Plugin 'bling/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
 
 Plugin 'STL-improved'
 Plugin 'a.vim'
 Plugin 'scrooloose/nerdtree'
+Plugin 'jistr/vim-nerdtree-tabs'
+
+" ----- Vim as a programmer's text editor -----------------------------
+Plugin 'Valloric/YouCompleteMe'
+Plugin 'scrooloose/syntastic'
+Plugin 'xolox/vim-misc'
+Plugin 'xolox/vim-easytags'
 Plugin 'majutsushi/tagbar'
 Plugin 'kien/ctrlp.vim'
+
+" ----- Working with Git ----------------------------------------------
+Plugin 'airblade/vim-gitgutter'
+Plugin 'tpope/vim-fugitive'
+
+" ----- Other text editing features -----------------------------------
+Plugin 'Raimondi/delimitMate'
+
+" ----- man pages, tmux -----------------------------------------------
+Plugin 'jez/vim-superman'
+Plugin 'christoomey/vim-tmux-navigator'
+
+"-------------------------------------------------------------------------
+"dragonwei add:
+Plugin 'scrooloose/nerdcommenter'
+Plugin 'SirVer/ultisnips'
+Plugin 'honza/vim-snippets'
+"-------------------------------------------------------------------------
+Plugin 'fatih/vim-go'
 
 """""""""  All of your Plugins must be added before the following line
 call vundle#end()            " required
@@ -224,13 +259,94 @@ filetype plugin indent on    " required
 "
 " see :h vundle for more details or wiki for FAQ
 " Put your non-Plugin stuff after this line
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"           YouCompleteMe:
 "
-"""配色方案设置""""""
-if(!has('gui_running'))
-    set t_Co=16
-endif
+"
+
+let g:ycm_server_python_interpreter = '/usr/bin/python3'
+let g:ycm_complete_in_comments = 1
+let g:ycm_error_symbol = '>'
+let g:ycm_warning_symbol = '*'
+let g:ycm_confirm_extra_conf = 0
+"let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+"let g:ycm_autoclose_preview_window_after_completion = 1
+"let g:ycm_autoclose_preview_window_after_insertion = 1
+"let g:ycm_key_invoke_completion = '<C-n>'
+let g:ycm_key_detailed_diagnostics = '<leader>d'
+let g:ycm_key_list_select_completion = ['<TAB>', '<Down>']
+let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
+let g:ycm_seed_identifiers_with_syntax = 1
+let g:ycm_min_num_of_chars_for_completion=1
+"let g:ycm_collect_identifiers_from_comments_and_strings = 1
+"let g:ycm_global_ycm_extra_conf='~/.vim/bundle/YouCompleteMe/cpp/ycm/.ycm_extra_conf.py'
+
+
+"inoremap <expr> <CR>       pumvisible() ? "\<C-y>" : "\<CR>"    "回车即选中当前项"
+nnoremap <F4> :YcmDiags<CR>
+nnoremap <F5> :YcmForceCompileAndDiagnostics<CR>
+nnoremap <C-g> :YcmCompleter GoTo<CR>
+nnoremap <C-y> :YcmCompleter GetType<CR>
+nnoremap <leader>ycmp :YcmCompleter GetParent<CR>
+nnoremap <leader>ycmd :YcmCompleter GetDoc<CR>
+nnoremap <leader>ycmf :YcmCompleter FixIt<CR>
+
+"
+""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" ----- Plugin-Specific Settings --------------------------------------
+" ----- nathanaelkane/vim-indent-guides Settings ----------
+" NOTE: vim-indent-guides 插件未安装，以下配置已禁用
+"let g:indent_guides_enable_on_vim_startup=1
+"let g:indent_guides_start_level = 2
+"let g:indent_guides_guide_size = 1
+"nmap <silent> <leader>ig <Plug>IndentGuidesToggle
+" ------ UltiSnips Settings -------------------
+let g:UltiSnipsSnippetDirectories=['UltiSnips']
+let g:UltiSnipsSnippetDir="~/.vim/UltiSnips"
+let g:UltiSnipsExpandTrigger = "<C-e>"
+let g:UltiSnipsJumpForwardTrigger = "<c-b>"
+let g:UltiSnipsJumpBackwardTrigger = "<c-z>"
+
+
+" ----- altercation/vim-colors-solarized settings -----
+" Toggle this to "light" for light colorscheme
+set background=dark
+
+" Uncomment the next line if your terminal is not configured for solarized
+let g:solarized_termcolors=256
+
+" Set the colorscheme
 colorscheme solarized
+
+
+" ----- bling/vim-airline settings -----
+" Always show statusbar
+set laststatus=2
+
+" Fancy arrow symbols, requires a patched font
+" To install a patched font, run over to
+"     https://github.com/abertsch/Menlo-for-Powerline
+" download all the .ttf files, double-click on them and click "Install"
+" Finally, uncomment the next line
+"let g:airline_powerline_fonts = 1
+
+" Show PASTE if in paste mode
+let g:airline_detect_paste=1
+
+" Show airline for tabs too
+let g:airline#extensions#tabline#enabled = 1
+
+
+" ----- jistr/vim-nerdtree-tabs -----
+" Open/close NERDTree Tabs with \t
+" nmap <silent> <leader>\t :NERDTreeTabsToggle<CR>
+nmap <C-t> :NERDTreeTabsToggle<CR>
+" To have NERDTree always open on startup
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 """ 配置接口切换 插件 a.vim"""
 " *.cpp 和 *.h 间切换
@@ -256,7 +372,6 @@ let NERDTreeAutoDeleteBuffer=1
 let NERDTreeShowLineNumbers=1
 let NERDTreeAutoCenter=1
 " 是否显示隐藏文件
-let NERDTreeShowHidden=1
 " 在终端启动vim时，共享NERDTree
 let g:nerdtree_tabs_open_on_console_startup=1
 " 忽略一下文件的显示
@@ -273,12 +388,50 @@ let NERDTreeShowBookmarks=1
 " autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | exe 'NERDTree' argv()[0] | wincmd p | ene | endif
  
 " 当vim中没有其他文件，值剩下nerdtree的时候，自动关闭窗口
-autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+augroup nerdtree_auto_close
+  autocmd!
+  autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
+augroup END
  
 " 改变nerdtree的箭头
 "let g:NERDTreeDirArrowExpandable = '+'
 "let g:NERDTreeDirArrowCollapsible = '-'
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" ----- scrooloose/syntastic settings -----
+"  有可能有性能问题，一般没事。
+let g:syntastic_check_on_open = 0
+let g:syntastic_error_symbol = '✘'
+let g:syntastic_warning_symbol = "▲"
+"自动开启静态语法检查
+let g:syntastic_auto_loc_list = 0
+let g:syntastic_loc_list_height = 5
+let g:syntastic_enable_highlighting = 0
+
+" YCM 已提供 C/C++/Python 诊断，避免 syntastic 重复检查
+let g:syntastic_mode_map = {
+    \ "mode": "active",
+    \ "passive_filetypes": ["c", "cpp", "python", "go"]
+    \ }
+augroup mySyntastic
+  au!
+  au FileType tex let b:syntastic_mode = "passive"
+augroup END
+
+
+" ----- xolox/vim-easytags settings -----
+" Where to look for tags files
+set tags=~/.tags;,~/.vimtags
+" Sensible defaults
+let g:easytags_events = ['BufReadPost', 'BufWritePost']
+let g:easytags_async = 1
+let g:easytags_dynamic_files = 2
+let g:easytags_resolve_links = 1
+let g:easytags_suppress_ctags_warning = 1
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" ----- majutsushi/tagbar settings -----
+" Uncomment to open tagbar automatically whenever possible
+"autocmd BufEnter * nested :call tagbar#autoopen(0)
 """ tagbar""" " 设置 tagbar 子窗口的位置出现在主编辑区的左边
 "let tagbar_left=1
 " 设置显示／隐藏标签列表子窗口的快捷键。速记：tag list
@@ -324,6 +477,45 @@ let g:tagbar_type_cpp = {
 \ }
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" ----- airblade/vim-gitgutter settings -----
+" Required after having changed the colorscheme
+hi clear SignColumn
+" In vim-airline, only display "hunks" if the diff is non-zero
+let g:airline#extensions#hunks#non_zero_only = 1
+
+
+" ----- Raimondi/delimitMate settings -----
+let delimitMate_expand_cr = 1
+augroup mydelimitMate
+  au!
+  au FileType markdown let b:delimitMate_nesting_quotes = ["`"]
+  au FileType tex let b:delimitMate_quotes = ""
+  au FileType tex let b:delimitMate_matchpairs = "(:),[:],{:},`:'"
+  au FileType python let b:delimitMate_nesting_quotes = ['"', "'"]
+augroup END
+
+
+nmap <F11> :!cd build && make<CR>
+augroup go_mappings
+  autocmd!
+  au FileType go nmap <leader>r <Plug>(go-run)
+  au FileType go nmap <leader>b <Plug>(go-build)
+  au FileType go nmap <leader>t <Plug>(go-test)
+  au FileType go nmap <leader>c <Plug>(go-coverage)
+  au FileType go nmap <leader>ds <Plug>(go-def-split)
+  au FileType go nmap <leader>dv <Plug>(go-def-vertical)
+  au FileType go nmap <leader>dt <Plug>(go-def-tab)
+  au FileType go nmap <leader>gd <Plug>(go-doc)
+  au FileType go nmap <leader>gv <Plug>(go-doc-vertical)
+  au FileType go nmap <leader>gb <Plug>(go-doc-browser)
+  au FileType go nmap <leader>s <Plug>(go-implements)
+  au FileType go nmap <leader>i <Plug>(go-info)
+  au FileType go nmap <leader>e <Plug>(go-rename)
+  au FileType go nmap <leader>rt <Plug>(go-run-tab)
+  au FileType go nmap <leader>rs <Plug>(go-run-split)
+  au FileType go nmap <leader>rv <Plug>(go-run-vertical)
+augroup END
 """"""CtrlP""""""
 "ctrlp
 "<Leader>p搜索当前目录下文件
@@ -352,4 +544,13 @@ let g:ctrlp_by_filename = 1
 let g:ctrlp_regexp = 0
 "自定义搜索列表的提示符
 let g:ctrlp_line_prefix = '♪ '
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+let g:gitgutter_max_signs=9999
+
+" -----vim-go settings -----
+let g:go_def_mode = 'gopls'
+let g:go_referrers_mode = 'gopls'
+let g:go_def_mapping_enabled = 1
+"Use this option to auto |:GoModFmt| on save. By default it's enabled
+let g:go_mod_fmt_autosave = 1
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
